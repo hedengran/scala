@@ -9,6 +9,9 @@ import scala.util.Random
 
 /* Test for scala/bug#7614 */
 class MinByMaxByTest {
+  val listOfOne = List(Random.nextInt(10000) - 5000)
+  val indexedSeqOfOne = IndexedSeq(Random.nextInt(10000) - 5000)
+
   val list = List.fill(1000)(Random.nextInt(10000) - 5000)
 
   // Basic emptiness check
@@ -16,6 +19,22 @@ class MinByMaxByTest {
   def checkEmpty(): Unit = {
     assertThrows[UnsupportedOperationException](List[Int]().maxBy(_ * 3))
     assertThrows[UnsupportedOperationException](List[Int]().minBy(_ * 3))
+  }
+
+  // Basic singleton check
+  @Test
+  def testSingle() = {
+    def f(x: Int) = 10 * x
+
+    val listMin = listOfOne.minBy(f)
+    val listMax = listOfOne.maxBy(f)
+    assertTrue("for a single element list containing element x: list.minBy(f) and list.maxBy(f) should return x",
+      listOfOne.forall(_ == listMin && listMin == listMax))
+
+    val indexedSeqMin = indexedSeqOfOne.minBy(f)
+    val indexedSeqMax = indexedSeqOfOne.maxBy(f)
+    assertTrue("for a single element iterable containing element x, where size is known: iterable.minBy(f) and iterable.maxBy(f) should return x",
+      indexedSeqOfOne.forall(_ == indexedSeqMin && indexedSeqMin == indexedSeqMax))
   }
 
   // Basic definition of minBy/maxBy.
@@ -37,6 +56,44 @@ class MinByMaxByTest {
     def f(x: Int) = x % 3;
     assert(d.maxBy(f) == 2, "If multiple elements evaluated to the largest value, maxBy should return the first one.")
     assert(d.minBy(f) == 3, "If multiple elements evaluated to the largest value, minBy should return the first one.")
+  }
+
+  // Make sure f is evaluated zero times when size is known to be 1.
+  @Test
+  def testEvaluateNeverForSeqOfSizeOne() = {
+    var evaluatedCountOfMaxBy = 0
+    @unused val max = indexedSeqOfOne.maxBy(x => {
+      evaluatedCountOfMaxBy += 1
+      x * 10
+    })
+    assert(evaluatedCountOfMaxBy == 0, s"maxBy: should evaluate f 0 times, but it evaluated $evaluatedCountOfMaxBy times.")
+
+    var evaluatedCountOfMinBy = 0
+    @unused val min = indexedSeqOfOne.minBy(x => {
+      evaluatedCountOfMinBy += 1
+      x * 10
+    })
+    assert(evaluatedCountOfMinBy == 0, s"minBy: should evaluate f 0 times, but it evaluated $evaluatedCountOfMinBy times.")
+  }
+
+  // Make sure f is evaluated one time when it's unknown that size is 1.
+  @Test
+  def testEvaluateOnceForListOfSizeOne() = {
+    var evaluatedCountOfMaxBy = 0
+
+    @unused val max = listOfOne.maxBy(x => {
+      evaluatedCountOfMaxBy += 1
+      x * 10
+    })
+    assert(evaluatedCountOfMaxBy == 1, s"maxBy: should evaluate f 1 times, but it evaluated $evaluatedCountOfMaxBy times.")
+
+    var evaluatedCountOfMinBy = 0
+
+    @unused val min = listOfOne.minBy(x => {
+      evaluatedCountOfMinBy += 1
+      x * 10
+    })
+    assert(evaluatedCountOfMinBy == 1, s"minBy: should evaluate f 1 times, but it evaluated $evaluatedCountOfMinBy times.")
   }
 
   // Make sure it evaluates f no more than list.length times.

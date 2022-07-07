@@ -988,21 +988,26 @@ trait IterableOnceOps[+A, +CC[_], +C] extends Any { this: IterableOnce[A] =>
     if (isEmpty)
       throw new UnsupportedOperationException("empty.maxBy")
 
-    class Maximizer extends runtime.AbstractFunction1[A, Unit] {
-      var maxF: B = null.asInstanceOf[B]
-      var maxElem: A = null.asInstanceOf[A]
-      var first = true
-      def apply(elem: A) = {
-        val fx = f(elem)
-        if (first && { first = false ; true } || cmp.gt(fx, maxF)) {
-          maxElem = elem
-          maxF = fx
+    if (knownSize == 1) {
+      val it = iterator
+      it.next()
+    } else {
+      class Maximizer extends runtime.AbstractFunction1[A, Unit] {
+        var maxF: B = null.asInstanceOf[B]
+        var maxElem: A = null.asInstanceOf[A]
+        var first = true
+        def apply(elem: A) = {
+          val fx = f(elem)
+          if (first && { first = false ; true } || cmp.gt(fx, maxF)) {
+            maxElem = elem
+            maxF = fx
+          }
         }
       }
+      val maximizer = new Maximizer
+      foreach(maximizer)
+      maximizer.maxElem
     }
-    val maximizer = new Maximizer
-    foreach(maximizer)
-    maximizer.maxElem
   }
 
   /** Finds the first element which yields the largest value measured by function f.
@@ -1037,21 +1042,26 @@ trait IterableOnceOps[+A, +CC[_], +C] extends Any { this: IterableOnce[A] =>
     if (isEmpty)
       throw new UnsupportedOperationException("empty.minBy")
 
-    class Minimizer extends runtime.AbstractFunction1[A, Unit] {
-      var minF: B = null.asInstanceOf[B]
-      var minElem: A = null.asInstanceOf[A]
-      var first = true
-      def apply(elem: A) = {
-        val fx = f(elem)
-        if (first && { first = false ; true } || cmp.lt(fx, minF)) {
-          minElem = elem
-          minF = fx
+    if (knownSize == 1) {
+      val it = iterator
+      it.next()
+    } else {
+      class Minimizer extends runtime.AbstractFunction1[A, Unit] {
+        var minF: B = null.asInstanceOf[B]
+        var minElem: A = null.asInstanceOf[A]
+        var first = true
+        def apply(elem: A) = {
+          val fx = f(elem)
+          if (first && { first = false ; true } || cmp.lt(fx, minF)) {
+            minElem = elem
+            minF = fx
+          }
         }
       }
+      val minimizer = new Minimizer
+      foreach(minimizer)
+      minimizer.minElem
     }
-    val minimizer = new Minimizer
-    foreach(minimizer)
-    minimizer.minElem
   }
 
   /** Finds the first element which yields the smallest value measured by function f.
